@@ -2,74 +2,51 @@ using UnityEngine;
 
 public class FlipperController : MonoBehaviour
 {
-    public float flipperForce = 500f;
-    public float maxRotationAngle = 45f;
-    public float returnSpeed = 10f; // Adjust the return speed of the flippers
-    public string inputButton = "Fire1"; // Change this to the desired input button
+    public float flipperForce = 2000f;
+    public float flipperRestRotation = 0f;
+    public float flipperPressedRotation = 45f;
+    public float flipperReturnSpeed = 100f;
+    public KeyCode flipperKey;
 
-    private Quaternion initialRotation;
-    private bool isFlipperActivated;
+    private HingeJoint hingeJoint;
+    private JointMotor motor;
+    private bool isReturning = false;
 
     private void Start()
     {
-        // Store the initial rotation of the flipper
-        initialRotation = transform.rotation;
+        hingeJoint = GetComponent<HingeJoint>();
+        hingeJoint.useMotor = true;
 
-        // Set the rigidbody's gravity to zero
-        GetComponent<Rigidbody>().useGravity = false;
+        motor = hingeJoint.motor;
+        motor.force = flipperForce;
+        hingeJoint.motor = motor;
     }
 
     private void Update()
     {
-        // Check for input to activate the flipper
-        if (Input.GetButtonDown(inputButton))
+        if (Input.GetKeyDown(flipperKey))
         {
-            // Set the flipper activation flag to true
-            isFlipperActivated = true;
+            motor.targetVelocity = flipperForce;
+            hingeJoint.motor = motor;
+            isReturning = false;
         }
 
-        // Check for input release to deactivate the flipper
-        if (Input.GetButtonUp(inputButton))
+        if (Input.GetKeyUp(flipperKey))
         {
-            // Set the flipper activation flag to false
-            isFlipperActivated = false;
+            isReturning = true;
         }
 
-        // Rotate the flipper while it is activated
-        if (isFlipperActivated)
+        if (isReturning)
         {
-            // Apply a torque force to the flipper to rotate it
-            GetComponent<Rigidbody>().AddTorque(transform.up * flipperForce);
+            motor.targetVelocity = -flipperReturnSpeed;
+            hingeJoint.motor = motor;
+
+            if (Mathf.Abs(hingeJoint.angle - flipperRestRotation) < 1f)
+            {
+                motor.targetVelocity = 0f;
+                hingeJoint.motor = motor;
+                isReturning = false;
+            }
         }
-        else
-        {
-            // Return the flipper to its original rotation
-            ReturnToOriginalRotation();
-        }
-
-        // Limit the rotation angle of the flipper
-        ClampRotation();
-    }
-
-    private void ClampRotation()
-    {
-        // Calculate the current angle of rotation
-        float currentAngle = Quaternion.Angle(initialRotation, transform.rotation);
-
-        // Clamp the rotation within the specified range
-        if (currentAngle > maxRotationAngle)
-        {
-            Quaternion newRotation = Quaternion.RotateTowards(transform.rotation, initialRotation, currentAngle - maxRotationAngle);
-            GetComponent<Rigidbody>().MoveRotation(newRotation);
-        }
-    }
-
-    private void ReturnToOriginalRotation()
-    {
-        // Smoothly rotate the flipper back to its original rotation
-        Quaternion targetRotation = initialRotation;
-        Quaternion currentRotation = transform.rotation;
-        Quaternion newRotation = Quaternion.Slerp(currentRotation, targetRotation, returnSpeed * Time.deltaTime);
-        GetComponent<Rigidbody>().MoveRotation(newRotation);
     }
 }
