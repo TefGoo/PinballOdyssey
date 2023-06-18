@@ -3,19 +3,27 @@ using TMPro;
 
 public class Timer : MonoBehaviour
 {
-    public TextMeshPro timerText;
+    public TMP_Text timerText;
     private float elapsedTime;
+    private float bestTime;
 
     private void Start()
     {
-        // Clear the stored elapsed time when SampleScene is loaded
+        // Reset the timer when SampleScene is loaded
         if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "SampleScene")
         {
+            elapsedTime = 0f;
             PlayerPrefs.DeleteKey("ElapsedTime");
         }
+        else
+        {
+            // Load the previously stored elapsed time
+            elapsedTime = PlayerPrefs.GetFloat("ElapsedTime", 0f);
+        }
 
-        // Load the previously stored elapsed time
-        elapsedTime = PlayerPrefs.GetFloat("ElapsedTime", 0f);
+        // Load the previously stored best time
+        bestTime = PlayerPrefs.GetFloat("BestTime", Mathf.Infinity);
+
         UpdateTimerText();
     }
 
@@ -36,7 +44,12 @@ public class Timer : MonoBehaviour
 
     private void OnDestroy()
     {
-        // Store the elapsed time when the scene changes
         PlayerPrefs.SetFloat("ElapsedTime", elapsedTime);
+
+        if (elapsedTime < bestTime)
+        {
+            bestTime = elapsedTime;
+            PlayerPrefs.SetFloat("BestTime", bestTime);
+        }
     }
 }
